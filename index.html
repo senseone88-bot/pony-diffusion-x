@@ -505,9 +505,9 @@ footer .copy{font-size:.78rem;color:#555}
 <div class="modal-overlay" id="checkoutModal">
   <div class="modal">
     <h2>📋 填寫訂購資訊</h2>
-    <p class="sub">完成後將導向 TWQR 付款頁面<br><span style="font-size:.78rem;color:#9a8ea0">📩 送出後你會收到 Email 訂單通知</span></p>
+    <p class="sub">完成後將導向 TWQR 付款頁面<br><span style="font-size:.78rem;color:#9a8ea0">📩 付款後賣家將寄送下載連結至你的 Email</span></p>
 
-    <form id="checkoutForm" action="" method="POST" target="_blank" onsubmit="setFormAction()">
+    <form id="checkoutForm" action="" method="POST" onsubmit="setFormAction()">
       <input type="hidden" name="product" value="Pony Diffusion X">
       <input type="hidden" name="amount" value="2580">
 
@@ -530,7 +530,7 @@ footer .copy{font-size:.78rem;color:#555}
       </div>
 
       <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:.5rem" onclick="submitCheckout()">
-        📱 前往 TWQR 付款 — NT$2,580
+        📋 送出訂單 — NT$2,580
       </button>
     </form>
 
@@ -637,8 +637,7 @@ function setFormAction(){
   document.getElementById('checkoutForm').action = BACKEND_URL + '/checkout';
 }
 function submitCheckout(){
-  // Let the form submit naturally (POST to backend, opens new tab)
-  showToast('📋 訂單送出中...下載連結將寄至你的 Email');
+  showToast('📋 訂單送出中，請稍候...');
   setTimeout(() => {
     closeCheckout();
     cart = [];

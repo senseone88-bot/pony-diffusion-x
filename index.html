@@ -497,27 +497,50 @@ footer .copy{font-size:.78rem;color:#555}
       <span>合計</span>
       <span id="cartTotal">NT$0</span>
     </div>
-    <button class="btn btn-primary" onclick="goToPayment()">📱 前往 TWQR 付款</button>
+    <button class="btn btn-primary" onclick="openCheckoutForm()">📋 填寫資料結帳</button>
   </div>
 </div>
 
 <!-- CHECKOUT MODAL -->
 <div class="modal-overlay" id="checkoutModal">
-  <div class="modal" style="text-align:center">
-    <h2>📱 TWQR 行動支付</h2>
-    <p class="sub">掃描 QR Code 或點擊按鈕前往付款頁面</p>
+  <div class="modal">
+    <h2>📋 填寫訂購資訊</h2>
+    <p class="sub">完成後將導向 TWQR 付款頁面<br><span style="font-size:.78rem;color:#9a8ea0">🔔 送出後你會收到 LINE 訂單通知</span></p>
 
-    <div class="twqr-area show" id="twqrArea">
-      <div class="qr-box" onclick="goToPayment()" style="cursor:pointer" title="點擊前往付款頁面">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://pcpay.tw/zgoaT" alt="TWQR QR Code" style="width:180px;height:180px">
+    <form id="checkoutForm" action="" method="POST" target="_blank" onsubmit="setFormAction()">
+      <input type="hidden" name="product" value="Pony Diffusion X">
+      <input type="hidden" name="amount" value="2580">
+
+      <div style="background:#1e1e36;padding:.8rem 1rem;border-radius:8px;margin-bottom:1.2rem;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.88rem">Pony Diffusion X <span style="color:#9a8ea0">× 1</span></span>
+        <span style="font-weight:700;color:#fbbf24">NT$2,580</span>
       </div>
-      <p style="font-size:.7rem;color:#555;margin-top:-.5rem;margin-bottom:.75rem">👆 點擊 QR Code 直接前往付款</p>
-      <div class="amount">NT$2,580</div>
-      <p>請使用台灣行動支付 App（或支援 TWQR 之銀行 App）掃描 QR Code 付款</p>
-      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:1rem" onclick="goToPayment()">📱 前往 TWQR 付款</button>
-    </div>
 
-    <button class="btn btn-outline" style="width:100%;justify-content:center;margin-top:.5rem" onclick="closeCheckout()">繼續選購</button>
+      <div class="form-group">
+        <label>訂購人姓名 *</label>
+        <input name="name" required placeholder="王小明">
+      </div>
+      <div class="form-group">
+        <label>電子郵件（寄送序號用）*</label>
+        <input type="email" name="email" required placeholder="example@gmail.com">
+      </div>
+      <div class="form-group">
+        <label>手機號碼 *</label>
+        <input type="tel" name="phone" required placeholder="0912345678">
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:.5rem" onclick="submitCheckout()">
+        📱 前往 TWQR 付款 — NT$2,580
+      </button>
+    </form>
+
+    <div style="display:flex;gap:.5rem;margin-top:.75rem">
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="closeCheckout()">取消</button>
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="goToPayment()">直接付款</button>
+    </div>
+    <p style="text-align:center;font-size:.72rem;color:#555;margin-top:.75rem">
+      🔒 資料僅用於訂單通知，付款由 pcpay.tw 安全處理
+    </p>
   </div>
 </div>
 
@@ -525,6 +548,9 @@ footer .copy{font-size:.78rem;color:#555}
 <div class="toast" id="toast"></div>
 
 <script>
+// ===== 設定（可自行修改）=====
+const BACKEND_URL = 'https://mazz68.pythonanywhere.com';
+
 // ===== SHOPPING CART =====
 let cart = [];
 
@@ -599,18 +625,34 @@ function updateCartUI(){
 }
 
 // ===== CHECKOUT =====
-function openCheckout(){
+function openCheckoutForm(){
   if(cart.length === 0){ showToast('購物車是空的'); return; }
   toggleCart();
+  document.getElementById('checkoutModal').classList.add('open');
 }
 function closeCheckout(){
   document.getElementById('checkoutModal').classList.remove('open');
+}
+function setFormAction(){
+  document.getElementById('checkoutForm').action = BACKEND_URL + '/checkout';
+}
+function submitCheckout(){
+  // Let the form submit naturally (POST to backend, opens new tab)
+  showToast('📋 訂單已送出，導向付款頁面...');
+  setTimeout(() => {
+    closeCheckout();
+    cart = [];
+    document.querySelectorAll('.in-cart-badge').forEach(b => b.style.display = 'none');
+    document.getElementById('cartBadge').classList.remove('show');
+    updateCartUI();
+  }, 800);
 }
 function goToPayment(){
   window.open('https://pcpay.tw/zgoaT', '_blank');
 }
 function directBuy(){
-  window.open('https://pcpay.tw/zgoaT', '_blank');
+  // Open checkout form first
+  document.getElementById('checkoutModal').classList.add('open');
 }
 
 // ===== FAQ =====

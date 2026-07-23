@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pony Diffusion X — NSFW 圖像影片生成</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Segoe UI','Noto Sans TC','Microsoft JhengHei',sans-serif;background:#0a0a0f;color:#f0e6f0;line-height:1.6;overflow-x:hidden}
+:root{--bg:#0a0a0f;--bg2:#12121e;--bg3:#1a1a2e;--card:#1e1e36;--accent:#e11d48;--accent2:#7c3aed;--gold:#fbbf24;--text:#f0e6f0;--muted:#9a8ea0;--radius:16px;--shadow:0 8px 32px rgba(0,0,0,.6)}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--accent2);border-radius:3px}
+
+/* HEADER */
+header{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(10,10,15,.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#e11d48,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.5px}
+.logo span{-webkit-text-fill-color:#f0e6f0;font-weight:400;background:none}
+nav{display:flex;gap:2rem;align-items:center}
+nav a{color:var(--muted);text-decoration:none;font-size:.85rem;transition:color .3s;letter-spacing:.3px}
+nav a:hover{color:var(--text)}
+.cart-btn{position:relative;background:none;border:none;color:var(--text);cursor:pointer;font-size:1.3rem;padding:6px;border-radius:50%;transition:background .3s}
+.cart-btn:hover{background:rgba(255,255,255,.08)}
+.cart-badge{position:absolute;top:-4px;right:-4px;background:var(--accent);color:#fff;font-size:.65rem;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:none;align-items:center;justify-content:center;padding:0 4px}
+.cart-badge.show{display:flex}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:100px 2rem 60px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(124,58,237,.15),transparent 70%),radial-gradient(ellipse 60% 40% at 30% 60%,rgba(225,29,72,.1),transparent 70%);pointer-events:none}
+.hero-badge{display:inline-block;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.3);padding:.4rem 1.2rem;border-radius:20px;font-size:.8rem;color:#a78bfa;margin-bottom:1.5rem;letter-spacing:1px;text-transform:uppercase;font-weight:600}
+.hero h1{font-size:clamp(2.4rem,6vw,4.8rem);font-weight:800;line-height:1.1;background:linear-gradient(135deg,#fff 30%,#a78bfa 70%,#e11d48);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.75rem}
+.hero .sub{font-size:clamp(1rem,2vw,1.35rem);color:var(--muted);max-width:640px;margin:0 auto 1rem;line-height:1.7}
+.hero .sub strong{color:var(--accent);-webkit-text-fill-color:var(--accent)}
+.hero-cta{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;margin-top:2rem}
+.btn{display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 2rem;border-radius:50px;font-size:1rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all .3s;border:none;letter-spacing:.3px}
+.btn-primary{background:linear-gradient(135deg,#e11d48,#7c3aed);color:#fff;box-shadow:0 4px 24px rgba(225,29,72,.35)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 32px rgba(225,29,72,.5)}
+.btn-outline{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,.2)}
+.btn-outline:hover{border-color:var(--accent2);background:rgba(124,58,237,.1)}
+
+/* SECTIONS */
+section{padding:6rem 2rem}
+.section-label{display:inline-block;font-size:.75rem;letter-spacing:2px;text-transform:uppercase;color:var(--accent2);font-weight:600;margin-bottom:.75rem}
+.section-title{font-size:clamp(1.6rem,3vw,2.4rem);font-weight:700;margin-bottom:1rem}
+.section-sub{color:var(--muted);font-size:1.05rem;max-width:600px;margin:0 auto 3rem;text-align:center}
+.container{max-width:1200px;margin:0 auto;width:100%}
+
+/* PAIN / SOLUTION */
+.pain-solution{background:var(--bg2)}
+.pain-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center}
+@media(max-width:768px){.pain-grid{grid-template-columns:1fr;gap:2rem}}
+.pain-list{display:flex;flex-direction:column;gap:1rem}
+.pain-item{display:flex;align-items:start;gap:1rem;background:var(--card);padding:1.1rem 1.4rem;border-radius:12px;border-left:3px solid var(--accent)}
+.pain-item .icon{font-size:1.3rem;flex-shrink:0;margin-top:2px}
+.pain-item h4{font-size:.95rem;margin-bottom:2px}
+.pain-item p{font-size:.85rem;color:var(--muted)}
+.solution-card{background:linear-gradient(135deg,rgba(124,58,237,.12),rgba(225,29,72,.08));border:1px solid rgba(124,58,237,.25);border-radius:var(--radius);padding:2.5rem;position:relative}
+.solution-card::before{content:'⚡';position:absolute;top:-12px;right:20px;font-size:2rem;filter:drop-shadow(0 0 12px rgba(124,58,237,.5))}
+.solution-card h3{font-size:1.2rem;margin-bottom:.75rem;color:#a78bfa}
+.solution-card p{color:var(--muted);font-size:.92rem;line-height:1.8}
+
+/* FEATURES GRID */
+.features{background:var(--bg)}
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem;margin-top:2rem}
+.feature-card{background:var(--card);border-radius:var(--radius);padding:2rem;border:1px solid rgba(255,255,255,.04);transition:all .4s;text-align:center}
+.feature-card:hover{transform:translateY(-6px);border-color:rgba(124,58,237,.3);box-shadow:var(--shadow)}
+.feature-card .icon{font-size:2.5rem;margin-bottom:1rem}
+.feature-card h3{font-size:1.05rem;margin-bottom:.5rem}
+.feature-card p{font-size:.85rem;color:var(--muted);line-height:1.7}
+
+/* DETAIL FEATURES */
+.detail-features{background:var(--bg2)}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-top:2rem}
+.detail-card{background:var(--card);border-radius:var(--radius);padding:2rem;border:1px solid rgba(255,255,255,.04);transition:all .4s}
+.detail-card:hover{transform:translateY(-4px);border-color:rgba(225,29,72,.2)}
+.detail-card .icon{font-size:2rem;margin-bottom:.75rem}
+.detail-card h3{font-size:1rem;margin-bottom:.5rem}
+.detail-card p{font-size:.85rem;color:var(--muted);line-height:1.7}
+
+/* AUDIENCE */
+.audience{background:var(--bg)}
+.audience-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;margin-top:2rem}
+.audience-card{background:var(--card);border-radius:var(--radius);padding:2rem;border:1px solid rgba(255,255,255,.04);transition:all .4s}
+.audience-card:hover{border-color:rgba(251,191,36,.3);transform:translateY(-4px)}
+.audience-card .emoji{font-size:2rem;margin-bottom:.75rem}
+.audience-card h3{font-size:1rem;margin-bottom:.5rem}
+.audience-card p{font-size:.85rem;color:var(--muted);line-height:1.7}
+
+/* PRICING */
+.pricing{background:var(--bg2);padding-bottom:8rem}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:2rem;margin-top:2rem;align-items:start}
+.pricing-card{background:var(--card);border-radius:var(--radius);padding:2.5rem 2rem;border:1px solid rgba(255,255,255,.06);transition:all .4s;position:relative}
+.pricing-card.featured{border-color:var(--accent2);transform:scale(1.03);box-shadow:0 0 40px rgba(124,58,237,.15)}
+.pricing-card.featured .badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#e11d48,#7c3aed);padding:.3rem 1.2rem;border-radius:20px;font-size:.75rem;font-weight:600;white-space:nowrap}
+.pricing-card:hover{transform:translateY(-8px);border-color:rgba(124,58,237,.3)}
+.pricing-card.featured:hover{transform:scale(1.05) translateY(-8px)}
+.pricing-card .plan-name{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem}
+.pricing-card .price{font-size:2.5rem;font-weight:800}
+.pricing-card .price span{font-size:1rem;font-weight:400;color:var(--muted)}
+.pricing-card .desc{font-size:.85rem;color:var(--muted);margin:1rem 0 1.5rem}
+.pricing-card ul{list-style:none;margin-bottom:2rem}
+.pricing-card ul li{padding:.4rem 0;font-size:.88rem;display:flex;gap:.5rem;align-items:center}
+.pricing-card ul li::before{content:'✓';color:var(--gold);font-weight:700}
+.pricing-card ul li.muted::before{content:'✗';color:#555}
+.pricing-card ul li.muted{color:#555}
+.pricing-card .btn{width:100%;justify-content:center}
+.in-cart-badge{display:none;background:rgba(124,58,237,.2);color:#a78bfa;font-size:.75rem;padding:.3rem .8rem;border-radius:20px;text-align:center;margin-top:.5rem}
+
+/* CART PANEL */
+.cart-overlay{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6);display:none;opacity:0;transition:opacity .3s}
+.cart-overlay.open{display:block;opacity:1}
+.cart-panel{position:fixed;top:0;right:0;width:400px;max-width:90vw;height:100vh;z-index:2001;background:var(--bg3);box-shadow:-8px 0 40px rgba(0,0,0,.6);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .4s cubic-bezier(.4,0,.2,1)}
+.cart-panel.open{transform:translateX(0)}
+.cart-header{display:flex;justify-content:space-between;align-items:center;padding:1.5rem;border-bottom:1px solid rgba(255,255,255,.06)}
+.cart-header h2{font-size:1.15rem}
+.cart-close{background:none;border:none;color:var(--muted);font-size:1.5rem;cursor:pointer;padding:4px}
+.cart-close:hover{color:var(--text)}
+.cart-items{flex:1;overflow-y:auto;padding:1rem 1.5rem}
+.cart-empty{text-align:center;color:var(--muted);padding:3rem 0;font-size:.9rem}
+.cart-item{display:flex;gap:1rem;align-items:center;padding:1rem 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.cart-item-info{flex:1}
+.cart-item-info h4{font-size:.9rem;margin-bottom:2px}
+.cart-item-info p{font-size:.8rem;color:var(--muted)}
+.cart-item-qty{display:flex;align-items:center;gap:.5rem}
+.cart-item-qty button{width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,.1);background:transparent;color:var(--text);cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center}
+.cart-item-qty button:hover{background:rgba(255,255,255,.08)}
+.cart-item-qty span{min-width:20px;text-align:center;font-size:.9rem}
+.cart-item-price{font-size:.9rem;font-weight:600;min-width:60px;text-align:right}
+.cart-item-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:2px}
+.cart-item-remove:hover{color:var(--accent)}
+.cart-footer{padding:1.5rem;border-top:1px solid rgba(255,255,255,.06)}
+.cart-total{display:flex;justify-content:space-between;font-size:1.1rem;font-weight:700;margin-bottom:1rem}
+.cart-total span:last-child{color:var(--gold)}
+.cart-footer .btn{width:100%;justify-content:center}
+
+/* CHECKOUT MODAL */
+.modal-overlay{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.7);display:none;opacity:0;transition:opacity .3s;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex;opacity:1}
+.modal{background:var(--bg3);border-radius:var(--radius);max-width:520px;width:100%;max-height:90vh;overflow-y:auto;padding:2rem;box-shadow:var(--shadow)}
+.modal h2{font-size:1.2rem;margin-bottom:.5rem}
+.modal .sub{color:var(--muted);font-size:.85rem;margin-bottom:1.5rem}
+.modal .order-summary{background:var(--card);border-radius:10px;padding:1rem;margin-bottom:1.5rem}
+.modal .order-summary .row{display:flex;justify-content:space-between;padding:.4rem 0;font-size:.88rem}
+.modal .order-summary .row.total{font-weight:700;border-top:1px solid rgba(255,255,255,.08);padding-top:.7rem;margin-top:.3rem}
+.modal .order-summary .row.total span:last-child{color:var(--gold);font-size:1.05rem}
+.payment-options{display:flex;flex-direction:column;gap:.75rem;margin-bottom:1.5rem}
+.payment-option{display:flex;align-items:center;gap:.75rem;background:var(--card);border:2px solid transparent;border-radius:10px;padding:1rem;cursor:pointer;transition:all .3s}
+.payment-option:hover{border-color:rgba(255,255,255,.1)}
+.payment-option.selected{border-color:var(--accent2);background:rgba(124,58,237,.08)}
+.payment-option .radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.payment-option.selected .radio{border-color:var(--accent2)}
+.payment-option.selected .radio::after{content:'';width:10px;height:10px;border-radius:50%;background:var(--accent2)}
+.payment-option .info h4{font-size:.9rem;margin-bottom:2px}
+.payment-option .info p{font-size:.78rem;color:var(--muted)}
+.twqr-area{display:none;background:var(--card);border-radius:12px;padding:2rem;text-align:center;margin-bottom:1.5rem}
+.twqr-area.show{display:block}
+.twqr-area .qr-box{width:200px;height:200px;margin:0 auto 1rem;background:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.twqr-area .qr-box svg{width:180px;height:180px}
+.twqr-area p{font-size:.82rem;color:var(--muted);line-height:1.7}
+.twqr-area .amount{font-size:1.8rem;font-weight:700;color:var(--gold);margin:.75rem 0}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:4px}
+.form-group input{width:100%;padding:.7rem 1rem;border-radius:8px;background:var(--card);border:1px solid rgba(255,255,255,.08);color:var(--text);font-size:.9rem;outline:none;transition:border .3s}
+.form-group input:focus{border-color:var(--accent2)}
+
+/* FAQ / 購買須知 */
+.faq{background:var(--bg)}
+.faq-grid{max-width:800px;margin:2rem auto 0;display:flex;flex-direction:column;gap:1rem}
+.faq-item{background:var(--card);border-radius:12px;overflow:hidden}
+.faq-q{padding:1.2rem 1.4rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:.95rem;font-weight:600;transition:background .3s}
+.faq-q:hover{background:rgba(255,255,255,.03)}
+.faq-q .arrow{font-size:.8rem;transition:transform .3s;color:var(--muted)}
+.faq-item.open .faq-q .arrow{transform:rotate(180deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease;padding:0 1.4rem}
+.faq-item.open .faq-a{max-height:300px;padding:0 1.4rem 1.2rem}
+.faq-a p{font-size:.85rem;color:var(--muted);line-height:1.8}
+
+/* FOOTER */
+footer{background:var(--bg2);padding:3rem 2rem;text-align:center;border-top:1px solid rgba(255,255,255,.04)}
+footer .warning{background:rgba(225,29,72,.1);border:1px solid rgba(225,29,72,.2);border-radius:10px;padding:1.2rem 1.5rem;margin-bottom:2rem;font-size:.85rem;color:var(--muted);line-height:1.7}
+footer .warning strong{color:#f87171}
+footer .links{display:flex;gap:2rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem}
+footer .links a{color:var(--muted);text-decoration:none;font-size:.82rem}
+footer .links a:hover{color:var(--text)}
+footer .copy{font-size:.78rem;color:#555}
+
+/* TOAST */
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(100px);background:var(--bg3);border:1px solid rgba(124,58,237,.3);color:var(--text);padding:.75rem 1.5rem;border-radius:10px;font-size:.88rem;z-index:5000;opacity:0;transition:all .4s;pointer-events:none;box-shadow:var(--shadow)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* NOTICE BAR */
+.notice-bar{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:.8rem 1.2rem;margin:2rem auto 0;font-size:.82rem;color:var(--gold);text-align:center;max-width:600px}
+.notice-bar a{color:#fbbf24;text-decoration:underline}
+.notice-bar a:hover{color:#fff}
+
+@media(max-width:640px){
+  header{padding:0 1rem}
+  nav a:not(.cart-btn){display:none}
+  .hero{padding:80px 1rem 40px;min-height:auto}
+  section{padding:4rem 1rem}
+  .pricing-card.featured{transform:none}
+  .pricing-card.featured:hover{transform:translateY(-8px)}
+  .cart-panel{width:100vw;max-width:100vw}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">Pony Diffusion <span>X</span></div>
+  <nav>
+    <a href="#features">功能</a>
+    <a href="#pricing">方案</a>
+    <a href="#faq">購買須知</a>
+    <button class="cart-btn" onclick="toggleCart()" aria-label="購物車">🛒<span class="cart-badge" id="cartBadge">0</span></button>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">🔞 NSFW · 零審查 · 本地部署</div>
+  <h1>Pony Diffusion X</h1>
+  <p class="sub"><strong>NSFW 圖像影片生成</strong> 🚫 零審查，尺度由你全掌控<br>真人級寫真 · 一鍵換臉 · 影片生成 · 圖像編輯</p>
+  <div class="hero-cta">
+    <a href="javascript:void(0)" onclick="directBuy()" class="btn btn-primary">🔥 立即購買 — NT$2,580</a>
+    <a href="#features" class="btn btn-outline">✨ 探索功能</a>
+  </div>
+  <div class="notice-bar">
+    🖥️ 購買前先檢測你的電腦相容性 → <a href="https://lihi2.me/6GQL4" target="_blank">AI 硬體相容性檢測工具 ❱</a>
+  </div>
+  <div style="margin-top:2.5rem;font-size:.8rem;color:var(--muted);display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:center">
+    <span>⚡ 文生圖</span><span>🎨 圖生圖</span><span>🎬 圖生影片</span><span>🖌️ 圖像編輯</span>
+  </div>
+</section>
+
+<!-- PAIN → SOLUTION -->
+<section class="pain-solution" id="features">
+  <div class="container">
+    <div class="pain-grid">
+      <div>
+        <div class="section-label">💢 受夠了嗎？</div>
+        <h2 class="section-title">那些充滿審查限制的 AI 工具</h2>
+        <div class="pain-list">
+          <div class="pain-item">
+            <span class="icon">🔇</span>
+            <div><h4>敏感詞屏蔽</h4><p>打個 prompt 也要小心翼翼，一堆詞不給用</p></div>
+          </div>
+          <div class="pain-item">
+            <span class="icon">🚫</span>
+            <div><h4>內容過濾器</h4><p>生成的圖片被 NSFW 濾鏡強制模糊或直接刪除</p></div>
+          </div>
+          <div class="pain-item">
+            <span class="icon">🧟</span>
+            <div><h4>塑膠感 AI 臉</h4><p>號稱寫真但皮膚假到不行，沒有真實質感</p></div>
+          </div>
+          <div class="pain-item">
+            <span class="icon">💀</span>
+            <div><h4>肢體崩壞</h4><p>多人互動或複雜姿勢常常缺手斷腳</p></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="solution-card">
+          <h3>🔥 Pony Diffusion X 霸氣降臨</h3>
+          <p>為你徹底撕下虛偽的標籤！這不只是一款 AI 模型，更是你專屬的 <strong style="color:#f0e6f0">「無限制」頂級私密攝影棚</strong>。專為極致真人 NSFW 寫真打造，從極致誘惑到狂野無忌，你的慾望，由它來完美具象化。<br><br>
+          🚫 <strong style="color:#f0e6f0">零審查，尺度由你全權掌控</strong> — 無論是性感內衣、全裸藝術，還是特殊 XP 與私密互動，Pony Diffusion X 絕不對你說「不」。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CORE FEATURES -->
+<section class="features">
+  <div class="container" style="text-align:center">
+    <div class="section-label">✨ 四大核心功能</div>
+    <h2 class="section-title">一站式 AI 寫真創作</h2>
+    <p class="section-sub">搭載頂級真人模型，讓高質感、逼真的人像創作變得前所未有的簡單</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon">🖼️</div>
+        <h3>圖片生成</h3>
+        <p>搭載頂級「真人 V6XL」模型，精緻五官、特定服裝、璀璨夜景與冬日雪景，完美精準呈現</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔄</div>
+        <h3>一鍵換臉</h3>
+        <p>內建「參考人臉」與 GFPGAN 修復技術，生成同時自動完美融入目標面貌，不對位、不失真</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🎬</div>
+        <h3>影片生成</h3>
+        <p>不只靜態創作，讓你的角色動起來！高品質影片生成，動態寫真全新體驗</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🖌️</div>
+        <h3>圖像編輯</h3>
+        <p>內建圖像編輯器，支援人臉偵測與區域編輯，讓你輕鬆修圖、調整細節一氣呵成</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DETAIL FEATURES -->
+<section class="detail-features">
+  <div class="container" style="text-align:center">
+    <div class="section-label">🔥 為什麼是 Pony Diffusion X？</div>
+    <h2 class="section-title">NSFW 創作者的終極武器</h2>
+    <div class="detail-grid">
+      <div class="detail-card">
+        <div class="icon">💧</div>
+        <h3>極致肉體擬真</h3>
+        <p>獨家強化真人質感演算，告別塑膠感。細膩還原真實肌膚紋理、汗水滑落、光影折射，彷彿能聽見呼吸聲</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon">🔗</div>
+        <h3>人體工學大師</h3>
+        <p>NSFW 最怕的肢體崩壞在此終結。對人體結構、關節彎曲與多人互動有著史無前例的理解力</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon">🎭</div>
+        <h3>千人千面</h3>
+        <p>自由訂製專屬模特兒，從臉型、身材比例到服裝材質（蕾絲、乳膠、透視裝），一切為你量身定做</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon">💡</div>
+        <h3>新手友善設計</h3>
+        <p>內建靈感提示詞庫、隨機生成功能、全中文直覺滑桿（尺寸/CFG/步數），新手也能馬上上手</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon">🖥️</div>
+        <h3>本地部署</h3>
+        <p>支援文生圖、圖生圖、圖生影片、圖像編輯。你的資料不出機器，隱私安全有保障</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon">⚡</div>
+        <h3>快速生成</h3>
+        <p>針對 576×1024 完美人像比例優化，搭配直覺式 CFG 引導與採步滑桿，快速產出高品質影像</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AUDIENCE -->
+<section class="audience">
+  <div class="container" style="text-align:center">
+    <div class="section-label">🎯 誰需要它？</div>
+    <h2 class="section-title">為這些人而生</h2>
+    <div class="audience-grid">
+      <div class="audience-card">
+        <div class="emoji">⭐</div>
+        <h3>Patreon / OnlyFans 創作者</h3>
+        <p>零成本打造高質量虛擬成人模特兒，快速變現，吸引大量死忠粉絲</p>
+      </div>
+      <div class="audience-card">
+        <div class="emoji">🎮</div>
+        <h3>成人遊戲 / 視覺小說開發者</h3>
+        <p>輕鬆生成海量且一致性極高的 CG 圖與真人風格立繪，大幅縮減開發週期</p>
+      </div>
+      <div class="audience-card">
+        <div class="emoji">🎨</div>
+        <h3>同人創作者 &amp; 紳士玩家</h3>
+        <p>將喜愛的二次元角色完美轉換為「三次元真人解禁版」，滿足最深層的渴望</p>
+      </div>
+      <div class="audience-card">
+        <div class="emoji">🔞</div>
+        <h3>追求極致感官的探險者</h3>
+        <p>在沒有任何目光評判的私人空間裡，盡情釋放你的創作慾</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="container" style="text-align:center">
+    <div class="section-label">💰 選擇方案</div>
+    <h2 class="section-title">立即解鎖 Pony Diffusion X</h2>
+    <p class="section-sub">準備好跨越禁忌的界線了嗎？讓你的每一個深夜幻想，化為觸手可及的真實震撼</p>
+    <div class="pricing-grid" style="max-width:400px;margin:2rem auto 0">
+      <!-- 進階版 ★唯一方案 -->
+      <div class="pricing-card featured">
+        <div class="badge">🔥 限時優惠</div>
+        <div class="plan-name">Pony Diffusion X</div>
+        <div class="price">NT$2,580 <span>/ 永久</span></div>
+        <p class="desc">完整功能解鎖 · 一次付費，終身使用</p>
+        <ul>
+          <li>🖼️ 圖片生成（真人 V6XL）</li>
+          <li>🔄 一鍵換臉 + GFPGAN 修復</li>
+          <li>🖌️ 圖像編輯工具</li>
+          <li>💡 靈感提示詞庫 + 隨機生成</li>
+          <li>🎨 文生圖 / 圖生圖</li>
+          <li>🎬 影片生成</li>
+          <li>⚡ 免費更新 &amp; 技術支援</li>
+        </ul>
+        <button class="btn btn-primary" onclick="addToCart('pro','Pony Diffusion X',2580)">🛒 加入購物車</button>
+        <div class="in-cart-badge" id="inCart-pro">✅ 已加入購物車</div>
+        <p style="text-align:center;margin-top:.8rem;font-size:.8rem;color:var(--muted)">
+          <a href="javascript:void(0)" onclick="directBuy()" style="color:var(--accent2);text-decoration:underline">或直接購買 →</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ / 購買須知 -->
+<section class="faq" id="faq">
+  <div class="container" style="text-align:center">
+    <div class="section-label">📋 購買須知</div>
+    <h2 class="section-title">常見問題</h2>
+    <div class="faq-grid">
+      <div class="faq-item open">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          💻 我的電腦跑得動嗎？
+          <span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          <p>建議使用 <a href="https://lihi2.me/6GQL4" target="_blank" style="color:#a78bfa">AI 硬體相容性檢測工具 ❱</a> 一鍵檢測你的 CPU、GPU、RAM，系統會自動分析你的硬體能否流暢運行。<br><br>
+          基本需求：NVIDIA GPU（6GB+ VRAM）、16GB RAM、Windows 10/11。</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          🔒 購買後如何取得軟體？
+          <span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          <p>付款完成後，系統會自動發送下載連結至你的 Email，內含完整安裝包及啟動序號。所有方案均為永久使用，無需月費。</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          🎬 影片生成有什麼限制？
+          <span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          <p>影片生成功能包含在進階版與終極版中。支援圖生影片、圖像編輯，最長可生成 999 秒（約 16.5 分鐘）的高品質影片，實際長度取決於你的 GPU 記憶體。</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          ❓ 付款後可以退款嗎？
+          <span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          <p>數位商品一經出貨（提供下載連結）即不接受退款，請在購買前先使用硬體檢測工具確認你的電腦相容性。如有特殊情況請聯繫客服。</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          🔞 這真的是無審查的嗎？
+          <span class="arrow">▼</span>
+        </div>
+        <div class="faq-a">
+          <p>是的。Pony Diffusion X 是本地部署軟體，所有運算都在你的電腦上完成，不會有任何雲端審查或內容過濾。你的創作完全由你掌控。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="warning">
+      ⚠️ <strong>警告：這是一個強大且無限制的工具</strong><br>
+      本產品僅供成年人使用。使用者應遵守當地法律法規，請勿用於非法目的。生成的內容由創作者自行負責。
+    </div>
+    <div class="links">
+      <a href="#">使用條款</a>
+      <a href="#">隱私政策</a>
+      <a href="#">退款政策</a>
+      <a href="#">聯絡客服</a>
+    </div>
+    <p class="copy">© 2026 AI夢幻工廠 · Pony Diffusion X · All rights reserved.</p>
+  </div>
+</footer>
+
+<!-- CART OVERLAY -->
+<div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+
+<!-- CART PANEL -->
+<div class="cart-panel" id="cartPanel">
+  <div class="cart-header">
+    <h2>🛒 購物車</h2>
+    <button class="cart-close" onclick="toggleCart()">✕</button>
+  </div>
+  <div class="cart-items" id="cartItems">
+    <div class="cart-empty">購物車是空的<br>去挑選適合你的方案吧！</div>
+  </div>
+  <div class="cart-footer" id="cartFooter" style="display:none">
+    <div class="cart-total">
+      <span>合計</span>
+      <span id="cartTotal">NT$0</span>
+    </div>
+    <button class="btn btn-primary" onclick="goToPayment()">📱 前往 TWQR 付款</button>
+  </div>
+</div>
+
+<!-- CHECKOUT MODAL -->
+<div class="modal-overlay" id="checkoutModal">
+  <div class="modal" style="text-align:center">
+    <h2>📱 TWQR 行動支付</h2>
+    <p class="sub">掃描 QR Code 或點擊按鈕前往付款頁面</p>
+
+    <div class="twqr-area show" id="twqrArea">
+      <div class="qr-box" onclick="goToPayment()" style="cursor:pointer" title="點擊前往付款頁面">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://pcpay.tw/zgoaT" alt="TWQR QR Code" style="width:180px;height:180px">
+      </div>
+      <p style="font-size:.7rem;color:#555;margin-top:-.5rem;margin-bottom:.75rem">👆 點擊 QR Code 直接前往付款</p>
+      <div class="amount">NT$2,580</div>
+      <p>請使用台灣行動支付 App（或支援 TWQR 之銀行 App）掃描 QR Code 付款</p>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:1rem" onclick="goToPayment()">📱 前往 TWQR 付款</button>
+    </div>
+
+    <button class="btn btn-outline" style="width:100%;justify-content:center;margin-top:.5rem" onclick="closeCheckout()">繼續選購</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== SHOPPING CART =====
+let cart = [];
+
+function toggleCart(){
+  const panel = document.getElementById('cartPanel');
+  const overlay = document.getElementById('cartOverlay');
+  const open = panel.classList.contains('open');
+  panel.classList.toggle('open',!open);
+  overlay.classList.toggle('open',!open);
+  if(!open) updateCartUI();
+}
+
+function addToCart(id, name, price){
+  const existing = cart.find(item => item.id === id);
+  if(existing){ showToast('此方案已在購物車中'); return; }
+  cart.push({id, name, price, qty:1});
+  document.getElementById('inCart-'+id).style.display = 'block';
+  updateCartUI();
+  showToast('✅ 「'+name+'」已加入購物車');
+  document.getElementById('cartBadge').classList.add('show');
+}
+
+function removeFromCart(id){
+  cart = cart.filter(item => item.id !== id);
+  const badge = document.getElementById('inCart-'+id);
+  if(badge) badge.style.display = 'none';
+  updateCartUI();
+  if(cart.length === 0) document.getElementById('cartBadge').classList.remove('show');
+}
+
+function changeQty(id, delta){
+  const item = cart.find(i => i.id === id);
+  if(!item) return;
+  item.qty = Math.max(1, item.qty + delta);
+  updateCartUI();
+}
+
+function updateCartUI(){
+  const container = document.getElementById('cartItems');
+  const footer = document.getElementById('cartFooter');
+  const badge = document.getElementById('cartBadge');
+  let total = 0;
+  let html = '';
+  if(cart.length === 0){
+    html = '<div class="cart-empty">購物車是空的<br>去挑選適合你的方案吧！</div>';
+    footer.style.display = 'none';
+    badge.classList.remove('show');
+  } else {
+    cart.forEach(item => {
+      const sub = item.price * item.qty;
+      total += sub;
+      html += '<div class="cart-item">'+
+        '<div class="cart-item-info">'+
+          '<h4>'+item.name+'</h4>'+
+          '<p>NT$'+item.price.toLocaleString()+'</p>'+
+        '</div>'+
+        '<div class="cart-item-qty">'+
+          '<button onclick="changeQty(\''+item.id+'\',-1)">−</button>'+
+          '<span>'+item.qty+'</span>'+
+          '<button onclick="changeQty(\''+item.id+'\',1)">+</button>'+
+        '</div>'+
+        '<div class="cart-item-price">NT$'+sub.toLocaleString()+'</div>'+
+        '<button class="cart-item-remove" onclick="removeFromCart(\''+item.id+'\')">✕</button>'+
+      '</div>';
+    });
+    footer.style.display = 'block';
+    badge.textContent = cart.reduce((s,i)=>s+i.qty,0);
+    badge.classList.add('show');
+  }
+  container.innerHTML = html;
+  document.getElementById('cartTotal').textContent = 'NT$'+total.toLocaleString();
+}
+
+// ===== CHECKOUT =====
+function openCheckout(){
+  if(cart.length === 0){ showToast('購物車是空的'); return; }
+  toggleCart();
+}
+function closeCheckout(){
+  document.getElementById('checkoutModal').classList.remove('open');
+}
+function goToPayment(){
+  window.open('https://pcpay.tw/zgoaT', '_blank');
+}
+function directBuy(){
+  window.open('https://pcpay.tw/zgoaT', '_blank');
+}
+
+// ===== FAQ =====
+function toggleFaq(el){
+  const item = el.parentElement;
+  item.classList.toggle('open');
+}
+
+// ===== TOAST =====
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timeout);
+  t._timeout = setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
